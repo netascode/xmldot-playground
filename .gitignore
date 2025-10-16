@@ -1,0 +1,56 @@
+# WASM build artifacts
+xmldot.wasm
+wasm_exec.js
+*.wasm
+*.sri
+*.sha256
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+.cache/
+
+# Coverage reports
+coverage.txt
+coverage.html
+*.coverprofile
+
+# Debug outputs
+debug.log
+__debug_bin
+
+# Node modules (if JS tooling added in future phases)
+node_modules/
+
+# Dependency directories
+vendor/
+go.work
+
+# Build directories
+build/
+dist/
+
+# Project files
+project/

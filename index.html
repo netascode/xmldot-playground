@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMLDOT Playground</title>
+    <meta name="description" content="Interactive playground for XMLDOT XML queries using WebAssembly">
+
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'; frame-ancestors 'none'">
+
+    <!-- Additional Security Headers -->
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="no-referrer">
+
+    <link rel="stylesheet" href="style.css" integrity="sha384-LShEAztmcEwnaK1GJjLiVY93r6bwAvX/TieQgQ/deER3qKpg6yTK+SKqht9W11N2" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>XMLDOT Playground</h1>
+            <p class="subtitle">
+                Interactive playground for <a href="https://github.com/netascode/xmldot" target="_blank" rel="noopener">XMLDOT</a> XML queries
+            </p>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loading-status" class="status-message status-loading">
+            <span class="spinner"></span>
+            Loading WebAssembly module...
+        </div>
+
+        <!-- Error State -->
+        <div id="error-status" class="status-message status-error hidden">
+            <strong>Error:</strong> <span id="error-message"></span>
+        </div>
+
+        <!-- Success State -->
+        <div id="success-status" class="status-message status-success hidden">
+            WebAssembly module loaded successfully!
+        </div>
+
+        <!-- Main Content -->
+        <div id="main-content" class="hidden">
+            <div class="main-layout">
+                <!-- Workspace -->
+                <div class="workspace">
+                    <!-- XML Input Section -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">XML Document</h2>
+                            <div class="section-actions">
+                                <button id="clear-xml-btn" class="button-secondary button-small">Clear</button>
+                            </div>
+                        </div>
+                        <textarea
+                            id="xml-input"
+                            aria-label="XML document input"
+                            placeholder="Enter your XML document here or select an example..."
+></textarea>
+                        <div class="info-box">
+                            <strong>Tip:</strong> Press <code>Ctrl+Enter</code> to execute query, <code>Esc</code> to clear results
+                        </div>
+                    </div>
+
+                    <!-- Query Path Section -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">Query Path</h2>
+                            <div class="section-actions">
+                                <button id="share-btn" class="button-secondary button-small button-share">Share Query</button>
+                                <button id="execute-btn" class="button-small">Execute (Ctrl+Enter)</button>
+                            </div>
+                        </div>
+                        <input
+                            type="text"
+                            id="path-input"
+                            aria-label="XMLDOT query path"
+                            placeholder="e.g., catalog.book.title" />
+                        <div class="shortcuts">
+                            Max query size: 4KB | Query timeout: 5 seconds
+                        </div>
+                    </div>
+
+                    <!-- Result Section -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">Result</h2>
+                            <div class="section-actions">
+                                <button id="copy-result-btn" class="button-secondary button-small">Copy</button>
+                                <button id="clear-result-btn" class="button-secondary button-small">Clear</button>
+                            </div>
+                        </div>
+                        <textarea
+                            id="result-output"
+                            readonly
+                            aria-label="Query result output"
+                            aria-live="polite"
+                            placeholder="Query results will appear here..."></textarea>
+                        <div id="query-metrics" class="query-metrics metrics-hidden" aria-live="polite"></div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <!-- Examples Section -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title collapsible-header" id="examples-header">Examples</h2>
+                        </div>
+                        <div class="collapsible-content" id="examples-content">
+                            <label for="example-category">Category</label>
+                            <select id="example-category">
+                                <option value="">All Categories</option>
+                                <option value="basic">Basic</option>
+                                <option value="arrays">Arrays</option>
+                                <option value="wildcards">Wildcards</option>
+                                <option value="filters">Filters</option>
+                                <option value="modifiers">Modifiers</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                            <div id="examples-list" style="margin-top: 15px;">
+                                <!-- Examples will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Query History Section -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title collapsible-header" id="history-header">Recent Queries</h2>
+                            <button id="clear-history-btn" class="button-secondary button-small">Clear</button>
+                        </div>
+                        <div class="collapsible-content" id="history-content">
+                            <div id="history-list">
+                                <div class="empty-state">No recent queries</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documentation Section -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title collapsible-header collapsed" id="docs-header">Quick Reference</h2>
+                        </div>
+                        <div class="collapsible-content collapsed" id="docs-content">
+                            <div class="docs-section">
+                                <h3>Basic Syntax</h3>
+                                <ul>
+                                    <li><code>element.child</code> - Dot notation</li>
+                                    <li><code>element.@attr</code> - Attribute access</li>
+                                    <li><code>element.#</code> - Count elements</li>
+                                </ul>
+                            </div>
+                            <div class="docs-section">
+                                <h3>Wildcards</h3>
+                                <ul>
+                                    <li><code>*.child</code> - Single-level wildcard</li>
+                                    <li><code>**.child</code> - Recursive wildcard</li>
+                                </ul>
+                            </div>
+                            <div class="docs-section">
+                                <h3>Filters</h3>
+                                <ul>
+                                    <li><code>#(field==value)#</code> - Equality</li>
+                                    <li><code>#(price>10)#</code> - Comparison</li>
+                                    <li><code>#(@attr==value)#</code> - Attribute filter</li>
+                                </ul>
+                            </div>
+                            <div class="docs-section">
+                                <h3>Modifiers</h3>
+                                <ul>
+                                    <li><code>|@reverse</code> - Reverse order</li>
+                                    <li><code>|@sort</code> - Sort results</li>
+                                    <li><code>|@first</code> - First element</li>
+                                    <li><code>|@last</code> - Last element</li>
+                                </ul>
+                            </div>
+                            <p style="margin-top: 15px;">
+                                <a href="https://github.com/netascode/xmldot" target="_blank" rel="noopener">Full Documentation →</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WASM Loading -->
+    <script src="examples.js" integrity="sha384-BXKxsB1sDCMo3oATjyVBJ4+vvdmchsK2o00bVXATCJ+F6JK7PHys6mdIM4RXrVeO" crossorigin="anonymous"></script>
+    <script src="wasm_exec.js" integrity="sha384-PWCs+V4BDf9yY1yjkD/p+9xNEs4iEbuvq+HezAOJiY3XL5GI6VyJXMsvnjiwNbce" crossorigin="anonymous"></script>
+    <script src="app.js" integrity="sha384-hmksO4TqDMPILx6wTalUaYSq+RXOaSmKOimC906DTMcnFHRH1Hvr4Ag35FaOqbRP" crossorigin="anonymous"></script>
+</body>
+</html>

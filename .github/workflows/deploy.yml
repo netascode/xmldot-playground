@@ -1,0 +1,65 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build WASM
+        run: make build
+
+      - name: Verify Build
+        run: |
+          # Use comprehensive verification from Makefile
+          make verify
+
+          # Generate checksum for deployment tracking
+          sha256sum xmldot.wasm > xmldot.wasm.sha256
+          echo "WASM SHA256:"
+          cat xmldot.wasm.sha256
+
+          # Verify WASM size is within limits
+          SIZE=$(stat -c%s xmldot.wasm)
+          if [ $SIZE -gt 20971520 ]; then
+            echo "ERROR: WASM binary too large ($SIZE bytes, max 20MB)"
+            exit 1
+          fi
+          if [ $SIZE -lt 1000000 ]; then
+            echo "ERROR: WASM binary suspiciously small ($SIZE bytes)"
+            exit 1
+          fi
+          echo "✓ WASM size validated: $SIZE bytes"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

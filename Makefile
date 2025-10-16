@@ -1,5 +1,8 @@
 .PHONY: all build serve clean deploy verify check-prereqs test test-security test-phase2
 
+# Force bash shell for pipefail support
+SHELL := /bin/bash
+
 # Go WASM runtime location
 GOROOT=$(shell go env GOROOT)
 WASM_EXEC=$(shell find "$(GOROOT)" -name "wasm_exec.js" 2>/dev/null | head -n 1)

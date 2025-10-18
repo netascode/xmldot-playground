@@ -165,7 +165,7 @@ func validateXML(this js.Value, args []js.Value) (result any) {
 // Args: none
 // Returns: string
 func getVersion(this js.Value, args []js.Value) any {
-	return "0.1.0"
+	return "0.2.0"
 }
 
 // makeError creates a standardized error response.
